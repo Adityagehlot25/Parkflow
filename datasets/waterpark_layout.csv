@@ -1,0 +1,22 @@
+ride_id,name,x_coordinate,y_coordinate,zone
+AQ01,Loopy Woopy,43,83,thrill
+AQ02,Swirl Whirl,19,62,thrill
+AQ03,Twisty Turvy,25,93,thrill
+AQ04,Zip Zap Zoom,23,77,thrill
+AQ05,Boomeranggo,7,76,thrill
+AQ06,Yell-O!,34,92,thrill
+AQ07,The Screamer,37,66,thrill
+AQ08,Raftaastic!,51,54,family
+AQ09,Soakerz,45,44,family
+AQ10,Splash,36,50,family
+AQ11,Floatsa,47,33,chill
+AQ12,Wacky Wavess,54,43,chill
+AQ13,Pirate Bay,63,30,kids
+AQ14,Kiddie Pond,56,24,kids
+AQ15,Rain Dance,65,69,chill
+F01,Food Court 1,15,50,food
+F02,Food Court 2,85,50,food
+F03,Food Court 3,50,85,food
+R01,Rest Area 1,20,80,rest
+R02,Rest Area 2,80,20,rest
+R03,Rest Area 3,50,50,rest
