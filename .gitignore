@@ -27,6 +27,12 @@ Thumbs.db
 *.csv
 !backend/datasets/*.csv
 
+# React/Frontend
+waterpark-frontend/node_modules/
+waterpark-frontend/build/
+waterpark-frontend/.env
+waterpark-frontend/.DS_Store
+
 # Misc
 *.log
 *.bak
