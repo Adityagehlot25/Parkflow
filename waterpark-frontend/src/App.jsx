@@ -2,15 +2,18 @@ import React, { useState } from 'react';
 import ParkMap from './components/ParkMap';
 import RideCards from './components/RideCards';
 import ItineraryForm from './components/ItineraryForm'; 
+import ChatBox from './components/ChatBox'; // <-- Import the new ChatBox
 
 function App() {
-  // Lifted state to share between the Form and the Map
+  // Lifted state to share between the Form, Map, and Chat
   const [itinerary, setItinerary] = useState(null);
 
   return (
     <div style={styles.appContainer}>
       <header style={styles.header}>
-        <h1>🌊 Aqua Imagicaa Live Dashboard</h1>
+        <h1 style={{ fontWeight: 800, fontSize: '2.7rem', color: '#002050', letterSpacing: '1px', textShadow: '0 2px 8px #b3d1ff' }}>
+          🌊 Aqua Imagicaa Live Dashboard
+        </h1>
         <p>Real-time crowd monitoring and ride status</p>
       </header>
       
@@ -18,7 +21,6 @@ function App() {
         <div style={styles.topSection}>
           {/* Left Side: 2D Park Map */}
           <div style={styles.mapSection}>
-            {/* Pass the itinerary down to visualize the path */}
             <ParkMap itinerary={itinerary} />
           </div>
 
@@ -31,6 +33,9 @@ function App() {
         {/* Bottom Section: Itinerary Planner */}
         <ItineraryForm itinerary={itinerary} setItinerary={setItinerary} />
       </main>
+
+      {/* Floating AI Chat Assistant */}
+      <ChatBox itinerary={itinerary} />
     </div>
   );
 }
@@ -44,11 +49,18 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     padding: '20px',
+    position: 'relative', // Ensures the fixed chat box positions cleanly over the app
   },
   header: {
     textAlign: 'center',
     marginBottom: '20px',
-    color: '#004080',
+    color: '#002050',
+    background: 'linear-gradient(90deg, #e0f0ff 0%, #b3d1ff 100%)',
+    borderRadius: '10px',
+    padding: '18px 0 10px 0',
+    boxShadow: '0 2px 8px #b3d1ff',
+    width: '100%',
+    maxWidth: '1200px',
   },
   mainContent: {
     width: '100%',

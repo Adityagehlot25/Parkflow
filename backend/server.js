@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const { initCrowdSimulator } = require('./services/crowdSimulator');
@@ -8,11 +10,14 @@ const crowdRouter = require('./routes/crowd');
 const waitTimesRouter = require('./routes/waitTimes');
 const itineraryRouter = require('./routes/itinerary');
 const amenitiesRouter = require('./routes/amenities');
+const chatRouter = require('./routes/chat');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use('/itinerary', itineraryRouter);
+app.use('/amenities', amenitiesRouter);
+app.use('/chat', chatRouter);
 app.use('/amenities', amenitiesRouter);
 app.use('/rides', ridesRouter);
 app.use('/crowd', crowdRouter);
