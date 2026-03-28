@@ -1,0 +1,16 @@
+ride_id,name,category,capacity_per_cycle,cycle_time_min,popularity_score,location_x,location_y,min_age,intensity_level
+AQ01,Loopy Woopy,Thrill,1,0.5,0.95,43,83,12+,5
+AQ02,Swirl Whirl,Thrill,4,1.5,0.88,19,62,10+,4
+AQ03,Twisty Turvy,Thrill,2,1.2,0.85,25,93,10+,4
+AQ04,Zip Zap Zoom,Thrill,2,0.8,0.8,23,77,8+,3
+AQ05,Boomeranggo,Thrill,2,1,0.9,7,76,10+,5
+AQ06,Yell-O!,Thrill,1,0.6,0.75,34,92,10+,4
+AQ07,The Screamer,Thrill,3,1.3,0.82,37,66,10+,4
+AQ08,Raftaastic!,Family,4,2,0.78,51,54,5+,2
+AQ09,Soakerz,Family,4,2,0.7,45,44,5+,2
+AQ10,Splash,Family,1,0.7,0.65,36,50,5+,2
+AQ11,Floatsa,Chill,50+,Continuous,0.6,47,33,0+,1
+AQ12,Wacky Wavess,Chill,200+,15,0.92,54,43,0+,1
+AQ13,Pirate Bay,Kids,50+,Continuous,0.85,63,30,3+,1
+AQ14,Kiddie Pond,Kids,30,Continuous,0.75,56,24,2+,1
+AQ15,Rain Dance,Chill,100+,20,0.8,65,69,0+,1

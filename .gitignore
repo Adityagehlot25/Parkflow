@@ -1,52 +1,182 @@
-# Node.js
+# ============================================================================
+# Node.js / npm
+# ============================================================================
 node_modules/
-.env
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+package-lock.json
+yarn.lock
+dist/
+build/
 
+# ============================================================================
+# Environment Variables (CRITICAL - Never commit!)
+# ============================================================================
+.env
+.env.local
+.env.*.local
+backend/.env
+waterpark-frontend/.env
+Machine-Learning/.env
+
+# ============================================================================
 # Python
+# ============================================================================
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.env
-*.venv
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+pip-log.txt
+pip-delete-this-directory.txt
+.venv
 venv/
 env/
 ENV/
+*.pkl
+*.joblib
+.pyc
 
-# VS Code
+# ============================================================================
+# IDE & Editor
+# ============================================================================
 .vscode/
-
-# OS
+.idea/
+*.code-workspace
+*.swp
+*.swo
+*~
 .DS_Store
 Thumbs.db
+*.sublime-project
+*.sublime-workspace
 
-# Data/Output
-*.csv
-!backend/datasets/*.csv
+# ============================================================================
+# Database & Logs
+# ============================================================================
+*.log
+*.db
+*.sqlite
+*.sqlite3
 
-# React/Frontend
+# ============================================================================
+# OS Specific
+# ============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ============================================================================
+# Build & Compilation Output
+# ============================================================================
+dist/
+build/
+.next/
+out/
+
+# ============================================================================
+# Frontend Specific (Vite)
+# ============================================================================
 waterpark-frontend/node_modules/
+waterpark-frontend/dist/
 waterpark-frontend/build/
 waterpark-frontend/.env
 waterpark-frontend/.DS_Store
+waterpark-frontend/.vite/
+waterpark-frontend/.eslintcache
 
-# Misc
-*.log
+# ============================================================================
+# Backend Specific (Express)
+# ============================================================================
+backend/node_modules/
+backend/.env
+backend/dist/
+backend/.vite/
+
+# ============================================================================
+# Machine Learning Specific
+# ============================================================================
+Machine-Learning/__pycache__/
+Machine-Learning/.venv
+Machine-Learning/venv/
+Machine-Learning/*.pkl
+Machine-Learning/*.joblib
+Machine-Learning/.env
+
+# ============================================================================
+# CSV Files (Keep versioned datasets only)
+# ============================================================================
+*.csv
+!backend/datasets/*.csv
+!Machine-Learning/*.csv
+!Machine-Learning/ride_metadata.csv
+!Machine-Learning/waterpark_wait_time_dataset.csv
+
+# ============================================================================
+# Temporary Files
+# ============================================================================
+*.tmp
+*.temp
 *.bak
 *.swp
+.cache/
 
-# Ignore generated datasets except those in backend/datasets
-!backend/datasets/
+# ============================================================================
+# Dependencies & Lock Files
+# ============================================================================
+# npm lock files (optional - include in repo for consistency)
+# package-lock.json
+# yarn.lock
 
-# Ignore Jupyter Notebooks
-*.ipynb
+# Python requirements
+# requirements-dev.txt
 
-# Ignore test output
+# ============================================================================
+# Generated Files
+# ============================================================================
+.cache
 coverage/
+.coverage
+htmlcov/
+*.ipynb_checkpoints
+.pytest_cache/
+.mypy_cache/
+.hypothesis/
 
-# Ignore build artifacts
+# ============================================================================
+# Jupyter Notebooks
+# ============================================================================
+*.ipynb
+.ipynb_checkpoints/
+
+# ============================================================================
+# Misc Project Files
+# ============================================================================
+*.orig
+*.rej
+fix_coordinates.py
+remove_r03.py
+verify_coordinates.py
 dist/
 build/

@@ -18,7 +18,6 @@ app.use(express.json());
 app.use('/itinerary', itineraryRouter);
 app.use('/amenities', amenitiesRouter);
 app.use('/chat', chatRouter);
-app.use('/amenities', amenitiesRouter);
 app.use('/rides', ridesRouter);
 app.use('/crowd', crowdRouter);
 app.use('/wait-times', waitTimesRouter);
