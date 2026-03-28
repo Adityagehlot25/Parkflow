@@ -1,27 +1,35 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ParkMap from './components/ParkMap';
 import RideCards from './components/RideCards';
+import ItineraryForm from './components/ItineraryForm'; 
 
 function App() {
+  // Lifted state to share between the Form and the Map
+  const [itinerary, setItinerary] = useState(null);
+
   return (
     <div style={styles.appContainer}>
       <header style={styles.header}>
-        <h1 style={{ fontWeight: 800, fontSize: '2.7rem', color: '#002050', letterSpacing: '1px', textShadow: '0 2px 8px #b3d1ff' }}>
-          🌊 Aqua Imagicaa Live Dashboard
-        </h1>
+        <h1>🌊 Aqua Imagicaa Live Dashboard</h1>
         <p>Real-time crowd monitoring and ride status</p>
       </header>
       
       <main style={styles.mainContent}>
-        {/* Left Side: 2D Park Map */}
-        <div style={styles.mapSection}>
-          <ParkMap />
+        <div style={styles.topSection}>
+          {/* Left Side: 2D Park Map */}
+          <div style={styles.mapSection}>
+            {/* Pass the itinerary down to visualize the path */}
+            <ParkMap itinerary={itinerary} />
+          </div>
+
+          {/* Right Side: Scrollable Ride Cards */}
+          <div style={styles.sidebarSection}>
+            <RideCards />
+          </div>
         </div>
 
-        {/* Right Side: Scrollable Ride Cards */}
-        <div style={styles.sidebarSection}>
-          <RideCards />
-        </div>
+        {/* Bottom Section: Itinerary Planner */}
+        <ItineraryForm itinerary={itinerary} setItinerary={setItinerary} />
       </main>
     </div>
   );
@@ -30,7 +38,7 @@ function App() {
 const styles = {
   appContainer: {
     fontFamily: 'system-ui, -apple-system, sans-serif',
-    backgroundColor: '#f0f8ff',
+    backgroundColor: '#95bbdc',
     minHeight: '100vh',
     display: 'flex',
     flexDirection: 'column',
@@ -40,29 +48,32 @@ const styles = {
   header: {
     textAlign: 'center',
     marginBottom: '20px',
-    color: '#002050',
-    background: 'linear-gradient(90deg, #e0f0ff 0%, #b3d1ff 100%)',
-    borderRadius: '10px',
-    padding: '18px 0 10px 0',
-    boxShadow: '0 2px 8px #b3d1ff',
+    color: '#004080',
   },
   mainContent: {
     width: '100%',
-    maxWidth: '1200px', // Widened to accommodate sidebar
+    maxWidth: '1200px',
     display: 'flex',
-    gap: '20px',       // Space between map and sidebar
+    flexDirection: 'column', 
+    gap: '20px',
+    alignItems: 'center',
+  },
+  topSection: {
+    width: '100%',
+    display: 'flex',
+    gap: '20px',
     alignItems: 'flex-start',
   },
   mapSection: {
-    flexGrow: 1, // Map takes up remaining space
+    flexGrow: 1,
     backgroundColor: 'white',
     borderRadius: '12px',
     boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
     padding: '20px',
   },
   sidebarSection: {
-    width: '350px', // Fixed width for the cards
-    height: '675px', // Matches roughly the height of the Map + Header
+    width: '350px',
+    height: '675px',
     backgroundColor: 'white',
     borderRadius: '12px',
     boxShadow: '0 4px 6px rgba(0,0,0,0.1)',

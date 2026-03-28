@@ -16,7 +16,6 @@ AQ14,Kiddie Pond,56,24,kids
 AQ15,Rain Dance,65,69,chill
 F01,Food Court 1,15,50,food
 F02,Food Court 2,85,50,food
-F03,Food Court 3,50,85,food
-R01,Rest Area 1,20,80,rest
-R02,Rest Area 2,80,20,rest
-R03,Rest Area 3,50,50,rest
+F03,Food Court 3,60,85,food
+R01,Rest Area 1,10,60,rest
+R02,Rest Area 2,85,25,rest

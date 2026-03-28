@@ -1,31 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 const API_BASE_URL = 'http://localhost:5000';
 
-const ParkMap = () => {
+const ParkMap = ({ itinerary }) => {
   const [layout, setLayout] = useState([]);
+  const [amenities, setAmenities] = useState([]); // <-- NEW: State for static amenities
   const [crowdData, setCrowdData] = useState({});
   const [lastUpdated, setLastUpdated] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // 1. Fetch the static park layout (Only runs once on mount)
+  // 1. Fetch static park layout AND amenities on mount
   useEffect(() => {
-    const fetchLayout = async () => {
+    const fetchStaticData = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/rides`);
-        if (!response.ok) throw new Error('Failed to fetch park layout');
-        const data = await response.json();
-        setLayout(data.data);
+        const [ridesRes, amenitiesRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/rides`),
+          fetch(`${API_BASE_URL}/amenities`)
+        ]);
+        
+        if (!ridesRes.ok) throw new Error('Failed to fetch park layout');
+        if (!amenitiesRes.ok) throw new Error('Failed to fetch amenities');
+        
+        const ridesData = await ridesRes.json();
+        const amenitiesData = await amenitiesRes.json();
+        
+        setLayout(ridesData.data);
+
+        // Deduplicate the time-series amenities data to get just the unique physical locations
+        const uniqueAmenities = [];
+        const seen = new Set();
+        for (const am of amenitiesData.data) {
+          if (!seen.has(am.amenity_id)) {
+            seen.add(am.amenity_id);
+            uniqueAmenities.push(am);
+          }
+        }
+        setAmenities(uniqueAmenities);
+
       } catch (err) {
         setError(err.message);
       }
     };
-
-    fetchLayout();
+    fetchStaticData();
   }, []);
 
-  // 2. Fetch the live crowd data (Polls every 5 seconds)
+  // 2. Fetch live crowd data continuously
   useEffect(() => {
     const fetchCrowdData = async () => {
       try {
@@ -34,7 +54,6 @@ const ParkMap = () => {
         
         const json = await response.json();
         
-        // Convert the array of crowd objects into a dictionary for O(1) lookups
         const crowdDict = {};
         json.data.forEach(item => {
           crowdDict[item.ride_id] = item;
@@ -45,30 +64,53 @@ const ParkMap = () => {
         setLoading(false);
       } catch (err) {
         console.error('Crowd polling error:', err);
-        // We don't set error state here to prevent the map from unmounting 
-        // if a single poll fails intermittently.
       }
     };
 
-    // Initial fetch
     fetchCrowdData();
-
-    // Set up polling interval
     const intervalId = setInterval(fetchCrowdData, 5000);
-
-    // Cleanup interval on unmount
     return () => clearInterval(intervalId);
   }, []);
 
-  // 3. Helper to determine color based on crowd level
+  // 3. Create O(1) Lookup for Itinerary items (Handles BOTH Rides and Amenities)
+  const itineraryLookup = useMemo(() => {
+    if (!itinerary || !itinerary.plan) return {};
+    const lookup = {};
+    itinerary.plan.forEach(step => {
+      // Rides use ride_id, Amenities use their name
+      const key = step.type === 'ride' ? step.ride_id : step.name; 
+      
+      if (lookup[key] === undefined) {
+        lookup[key] = step.order;
+      }
+    });
+    return lookup;
+  }, [itinerary]);
+
+  // 4. Extract points for SVG connecting lines
+  const pathPoints = useMemo(() => {
+    if (!itinerary || !itinerary.plan || layout.length === 0) return [];
+    const points = [];
+    itinerary.plan.forEach(step => {
+      if (step.type === 'ride') {
+        const node = layout.find(n => n.ride_id === step.ride_id);
+        if (node) points.push({ x: node.x_coordinate, y: node.y_coordinate });
+      } else {
+        if (step.location_x !== undefined && step.location_y !== undefined) {
+          points.push({ x: step.location_x, y: step.location_y });
+        }
+      }
+    });
+    return points;
+  }, [itinerary, layout]);
+
   const getCrowdColor = (level) => {
-    if (level === undefined || level === null) return '#d3d3d3'; // Gray if no data
-    if (level < 0.3) return '#4ade80'; // Green (Low)
-    if (level <= 0.7) return '#facc15'; // Yellow (Medium)
-    return '#f87171'; // Red (High)
+    if (level === undefined || level === null) return '#d3d3d3'; 
+    if (level < 0.3) return '#4ade80'; 
+    if (level <= 0.7) return '#facc15'; 
+    return '#f87171'; 
   };
 
-  // Render States
   if (error) return <div style={styles.errorMsg}>Error: {error}</div>;
   if (loading) return <div style={styles.loadingMsg}>Loading Park Map...</div>;
 
@@ -83,16 +125,39 @@ const ParkMap = () => {
         )}
       </div>
 
-      {/* The 2D Coordinate Grid */}
       <div style={styles.mapContainer}>
+        {/* Draw SVG Path Connections */}
+        {pathPoints.length > 1 && (
+          <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 5 }}>
+            {pathPoints.map((p, index) => {
+              if (index === 0) return null;
+              const prev = pathPoints[index - 1];
+              return (
+                <line 
+                  key={index}
+                  x1={`${prev.x}%`} 
+                  y1={`${prev.y}%`} 
+                  x2={`${p.x}%`} 
+                  y2={`${p.y}%`} 
+                  stroke="#3b82f6" 
+                  strokeWidth="3" 
+                  strokeDasharray="6,4" 
+                />
+              );
+            })}
+          </svg>
+        )}
+
+        {/* --- DRAW ALL RIDES --- */}
         {layout.map((node) => {
-          // Merge static layout with dynamic crowd data
           const liveStats = crowdData[node.ride_id];
           const crowdLevel = liveStats ? liveStats.crowd_level : null;
           const queueSize = liveStats ? liveStats.people_in_queue : 0;
           
-          const nodeColor = getCrowdColor(crowdLevel);
-          const isAmenity = node.zone === 'food' || node.zone === 'rest';
+          const order = itineraryLookup[node.ride_id];
+          const isInItinerary = order !== undefined;
+          
+          const nodeColor = isInItinerary ? '#3b82f6' : getCrowdColor(crowdLevel);
 
           return (
             <div
@@ -102,13 +167,47 @@ const ParkMap = () => {
                 left: `${node.x_coordinate}%`,
                 top: `${node.y_coordinate}%`,
                 backgroundColor: nodeColor,
-                // Make amenities slightly smaller/different shape if desired
-                borderRadius: isAmenity ? '4px' : '50%', 
-                border: isAmenity ? '2px dashed #666' : '2px solid white',
+                borderRadius: '50%', 
+                border: isInItinerary ? '3px solid #1e3a8a' : '2px solid white',
+                zIndex: isInItinerary ? 20 : 10,
               }}
-              title={`${node.name} | Queue: ${queueSize}`} // Native browser tooltip
+              title={`${node.name} | Queue: ${queueSize}`}
             >
-              <span style={styles.nodeText}>{node.name}</span>
+              <span style={styles.nodeText}>
+                {isInItinerary && <span style={styles.orderBadge}>{order}</span>}
+                {node.name}
+              </span>
+            </div>
+          );
+        })}
+
+        {/* --- DRAW ALL AMENITIES --- */}
+        {amenities.map((amenity) => {
+          const order = itineraryLookup[amenity.name];
+          const isInItinerary = order !== undefined;
+          
+          const isFood = amenity.type === 'food';
+          const bgColor = isFood ? '#fb923c' : '#c084fc'; 
+
+          return (
+            <div
+              key={amenity.amenity_id}
+              style={{
+                ...styles.mapNode,
+                left: `${amenity.location_x}%`,
+                top: `${amenity.location_y}%`,
+                backgroundColor: bgColor,
+                borderRadius: '8px', // Square to distinguish from round rides
+                border: isInItinerary ? '3px solid #1e3a8a' : '2px solid white',
+                zIndex: isInItinerary ? 25 : 5, // Keep un-targeted amenities slightly behind rides
+                opacity: isInItinerary ? 1 : 0.85, // Slightly dim un-targeted amenities
+              }}
+              title={`${amenity.name} | Avg Wait: ${amenity.avg_wait_time} mins`}
+            >
+              <span style={styles.nodeText}>
+                {isInItinerary && <span style={styles.orderBadge}>{order}</span>}
+                {amenity.name}
+              </span>
             </div>
           );
         })}
@@ -116,16 +215,17 @@ const ParkMap = () => {
       
       {/* Legend */}
       <div style={styles.legend}>
-        <span style={{...styles.legendDot, backgroundColor: '#4ade80'}}></span> Low
-        <span style={{...styles.legendDot, backgroundColor: '#facc15'}}></span> Medium
-        <span style={{...styles.legendDot, backgroundColor: '#f87171'}}></span> High
-        <span style={{...styles.legendDot, backgroundColor: '#d3d3d3', borderRadius: '4px'}}></span> Amenity
+        <span style={{...styles.legendDot, backgroundColor: '#3b82f6'}}></span> Targeted Item
+        <span style={{...styles.legendDot, backgroundColor: '#fb923c', borderRadius: '4px'}}></span> Food
+        <span style={{...styles.legendDot, backgroundColor: '#c084fc', borderRadius: '4px'}}></span> Rest Area
+        <span style={{...styles.legendDot, backgroundColor: '#4ade80', marginLeft: '10px'}}></span> Low Wait
+        <span style={{...styles.legendDot, backgroundColor: '#facc15'}}></span> Med Wait
+        <span style={{...styles.legendDot, backgroundColor: '#f87171'}}></span> High Wait
       </div>
     </div>
   );
 };
 
-// Inline Styles
 const styles = {
   errorMsg: { color: 'red', textAlign: 'center', padding: '20px' },
   loadingMsg: { textAlign: 'center', padding: '40px', color: '#666' },
@@ -144,8 +244,8 @@ const styles = {
   mapContainer: {
     position: 'relative',
     width: '100%',
-    height: '600px', // Fixed height as requested
-    backgroundColor: '#e0f2fe', // Light water blue background
+    height: '600px', 
+    backgroundColor: '#e0f2fe', 
     borderRadius: '8px',
     border: '2px solid #bae6fd',
     overflow: 'hidden',
@@ -154,14 +254,22 @@ const styles = {
     position: 'absolute',
     width: '60px',
     height: '60px',
-    transform: 'translate(-50%, -50%)', // Centers the dot exactly on the coordinate
+    transform: 'translate(-50%, -50%)', 
     display: 'flex',
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-    transition: 'background-color 0.5s ease', // Smooth color transitions during updates
+    transition: 'background-color 0.5s ease, border 0.3s ease', 
     cursor: 'pointer',
-    zIndex: 10,
+  },
+  orderBadge: {
+    display: 'block',
+    fontSize: '1.2rem',
+    fontWeight: '900',
+    color: 'white',
+    textShadow: '1px 1px 2px rgba(0,0,0,0.6)',
+    marginBottom: '-2px',
   },
   nodeText: {
     fontSize: '0.65rem',
@@ -169,13 +277,15 @@ const styles = {
     color: '#1f2937',
     textAlign: 'center',
     padding: '2px',
-    textShadow: '0px 0px 2px rgba(255,255,255,0.8)', // Makes text readable regardless of circle color
+    lineHeight: '1.1',
+    textShadow: '0px 0px 3px rgba(255,255,255,0.9)', 
   },
   legend: {
     display: 'flex',
     justifyContent: 'center',
+    flexWrap: 'wrap',
     alignItems: 'center',
-    gap: '15px',
+    gap: '12px',
     marginTop: '15px',
     fontSize: '0.85rem',
   },
