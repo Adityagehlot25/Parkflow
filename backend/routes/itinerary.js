@@ -114,8 +114,8 @@ const generateItineraryPlan = async ({ age_group, thrill_preference, visit_durat
                         type: breakAmenity.type,
                         name: breakAmenity.name,
                         expected_wait: amenityWait,
-                        location_x: breakAmenity.location_x, // FIX: Frontend needs this to draw!
-                        location_y: breakAmenity.location_y, // FIX: Frontend needs this to draw!
+                        location_x: breakAmenity.location_x, 
+                        location_y: breakAmenity.location_y, 
                         order: order++
                     });
                     
@@ -200,7 +200,10 @@ const generateItineraryPlan = async ({ age_group, thrill_preference, visit_durat
 
     return {
         plan: plan,
-        total_time: Number(current_total_time.toFixed(2))
+        total_time: Number(current_total_time.toFixed(2)),
+        current_index: 0,
+        remaining_plan: plan,
+        remaining_time: Number(current_total_time.toFixed(2))
     };
 };
 
@@ -228,6 +231,7 @@ const validateItineraryInput = (req, res, next) => {
 // ---------------------------------------------------------
 // API Routes
 // ---------------------------------------------------------
+
 router.post('/', validateItineraryInput, async (req, res) => {
     try {
         const result = await generateItineraryPlan(req.body);
@@ -245,6 +249,41 @@ router.post('/plan-itinerary', validateItineraryInput, async (req, res) => {
     } catch (error) {
         if (error.message === "WAIT_TIMES_UNAVAILABLE") return res.status(503).json({ error: "Initializing..." });
         res.status(500).json({ error: "Failed to plan itinerary." });
+    }
+});
+
+// NEW ROUTE: Progress incrementer
+router.post('/next', (req, res) => {
+    try {
+        const { plan, current_index } = req.body;
+
+        if (!plan || !Array.isArray(plan) || current_index === undefined) {
+            return res.status(400).json({ error: "Invalid payload. 'plan' and 'current_index' are required." });
+        }
+
+        const next_index = current_index + 1;
+        
+        // 1. Slice off the past items
+        const remaining_plan = plan.slice(next_index);
+        
+        // 2. Mathematically compute the remaining minutes left in the day
+        let remaining_time = 0;
+        for (const item of remaining_plan) {
+            const duration = item.type === 'ride' ? 5 : 20; // assumed 5 mins to ride, 20 mins to eat
+            remaining_time += ((parseFloat(item.expected_wait) || 0) + duration);
+        }
+
+        // 3. Return updated snapshot to frontend
+        res.json({
+            plan: plan, // Keep original intact
+            current_index: next_index,
+            remaining_plan: remaining_plan,
+            remaining_time: Number(remaining_time.toFixed(2))
+        });
+
+    } catch (error) {
+        console.error("Error processing /next:", error);
+        res.status(500).json({ error: "Failed to update itinerary progress." });
     }
 });
 

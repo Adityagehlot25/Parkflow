@@ -4,7 +4,7 @@ const API_BASE_URL = 'http://localhost:5000';
 
 const ParkMap = ({ itinerary }) => {
   const [layout, setLayout] = useState([]);
-  const [amenities, setAmenities] = useState([]); // <-- NEW: State for static amenities
+  const [amenities, setAmenities] = useState([]);
   const [crowdData, setCrowdData] = useState({});
   const [lastUpdated, setLastUpdated] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -45,7 +45,7 @@ const ParkMap = ({ itinerary }) => {
     fetchStaticData();
   }, []);
 
-  // 2. Fetch live crowd data continuously
+  // 2. Fetch the live crowd data (Polls every 5 seconds)
   useEffect(() => {
     const fetchCrowdData = async () => {
       try {
@@ -72,26 +72,34 @@ const ParkMap = ({ itinerary }) => {
     return () => clearInterval(intervalId);
   }, []);
 
-  // 3. Create O(1) Lookup for Itinerary items (Handles BOTH Rides and Amenities)
+  // --- NEW: Calculate the Remaining Plan based on current_index ---
+  const remainingPlan = useMemo(() => {
+    if (!itinerary || !itinerary.plan) return [];
+    const currentIndex = itinerary.current_index || 0;
+    return itinerary.plan.slice(currentIndex);
+  }, [itinerary]);
+
+  // 3. Create O(1) Lookup for Itinerary items based ONLY on the remaining plan
   const itineraryLookup = useMemo(() => {
-    if (!itinerary || !itinerary.plan) return {};
     const lookup = {};
-    itinerary.plan.forEach(step => {
+    remainingPlan.forEach(step => {
       // Rides use ride_id, Amenities use their name
       const key = step.type === 'ride' ? step.ride_id : step.name; 
       
+      // Only grab the FIRST occurrence in the remaining plan
       if (lookup[key] === undefined) {
         lookup[key] = step.order;
       }
     });
     return lookup;
-  }, [itinerary]);
+  }, [remainingPlan]);
 
-  // 4. Extract points for SVG connecting lines
+  // 4. Extract points for SVG connecting lines based ONLY on the remaining plan
   const pathPoints = useMemo(() => {
-    if (!itinerary || !itinerary.plan || layout.length === 0) return [];
+    if (remainingPlan.length === 0 || layout.length === 0) return [];
     const points = [];
-    itinerary.plan.forEach(step => {
+    
+    remainingPlan.forEach(step => {
       if (step.type === 'ride') {
         const node = layout.find(n => n.ride_id === step.ride_id);
         if (node) points.push({ x: node.x_coordinate, y: node.y_coordinate });
@@ -102,7 +110,7 @@ const ParkMap = ({ itinerary }) => {
       }
     });
     return points;
-  }, [itinerary, layout]);
+  }, [remainingPlan, layout]);
 
   const getCrowdColor = (level) => {
     if (level === undefined || level === null) return '#d3d3d3'; 
@@ -197,10 +205,10 @@ const ParkMap = ({ itinerary }) => {
                 left: `${amenity.location_x}%`,
                 top: `${amenity.location_y}%`,
                 backgroundColor: bgColor,
-                borderRadius: '8px', // Square to distinguish from round rides
+                borderRadius: '8px',
                 border: isInItinerary ? '3px solid #1e3a8a' : '2px solid white',
-                zIndex: isInItinerary ? 25 : 5, // Keep un-targeted amenities slightly behind rides
-                opacity: isInItinerary ? 1 : 0.85, // Slightly dim un-targeted amenities
+                zIndex: isInItinerary ? 25 : 5, 
+                opacity: isInItinerary ? 1 : 0.85, 
               }}
               title={`${amenity.name} | Avg Wait: ${amenity.avg_wait_time} mins`}
             >

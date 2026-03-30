@@ -3,6 +3,9 @@ import React, { useState, useRef, useEffect } from 'react';
 const API_BASE_URL = 'http://localhost:5000';
 
 const ChatBox = ({ itinerary }) => {
+  // 1. Add Minimize State (Default to closed so it doesn't block the screen initially)
+  const [isMinimized, setIsMinimized] = useState(true);
+
   const [messages, setMessages] = useState([
     { text: "Hi! I'm your Aqua Imagicaa Assistant. Ask me about rides, wait times, or your itinerary!", sender: "bot" }
   ]);
@@ -10,14 +13,16 @@ const ChatBox = ({ itinerary }) => {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // Auto-scroll to the bottom when new messages arrive
+  // Auto-scroll to the bottom when new messages arrive or when chat is opened
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, isLoading]);
+    if (!isMinimized) {
+      scrollToBottom();
+    }
+  }, [messages, isLoading, isMinimized]);
 
   const handleSend = async (e) => {
     e.preventDefault(); // Prevents page reload on 'Enter'
@@ -39,7 +44,7 @@ const ChatBox = ({ itinerary }) => {
         },
         body: JSON.stringify({ 
           message: userMessage, 
-          itinerary: itinerary // Pass current plan to provide context to the LLM
+          itinerary: itinerary 
         }),
       });
 
@@ -59,11 +64,35 @@ const ChatBox = ({ itinerary }) => {
     }
   };
 
+  // -------------------------------------------------------------
+  // Render Minimized View
+  // -------------------------------------------------------------
+  if (isMinimized) {
+    return (
+      <button 
+        style={styles.minimizedButton} 
+        onClick={() => setIsMinimized(false)}
+      >
+        Chat 🤖
+      </button>
+    );
+  }
+
+  // -------------------------------------------------------------
+  // Render Expanded View
+  // -------------------------------------------------------------
   return (
     <div style={styles.container}>
-      {/* Header */}
+      {/* Header with Minimize Button */}
       <div style={styles.header}>
-        🤖 Aqua Assistant
+        <span>🤖 Aqua Assistant</span>
+        <button 
+          onClick={() => setIsMinimized(true)} 
+          style={styles.minimizeButton}
+          title="Minimize Chat"
+        >
+          &minus;
+        </button>
       </div>
 
       {/* Messages Area */}
@@ -106,6 +135,34 @@ const ChatBox = ({ itinerary }) => {
 };
 
 const styles = {
+  // New Styles for the toggle buttons
+  minimizedButton: {
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    backgroundColor: '#0ea5e9',
+    color: 'white',
+    border: 'none',
+    borderRadius: '30px',
+    padding: '12px 24px',
+    fontSize: '1.1rem',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+    zIndex: 1000,
+    transition: 'transform 0.2s ease',
+  },
+  minimizeButton: {
+    background: 'none',
+    border: 'none',
+    color: 'white',
+    fontSize: '1.5rem',
+    cursor: 'pointer',
+    lineHeight: '1',
+    padding: '0 5px',
+  },
+  
+  // Existing Styles (Updated header layout for the button)
   container: {
     position: 'fixed',
     bottom: '20px',
@@ -124,10 +181,12 @@ const styles = {
   header: {
     backgroundColor: '#004080',
     color: 'white',
-    padding: '15px',
+    padding: '12px 15px',
     fontWeight: 'bold',
     fontSize: '1.1rem',
-    textAlign: 'center',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   messagesArea: {
     flex: 1,

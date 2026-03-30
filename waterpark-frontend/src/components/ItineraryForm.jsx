@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const API_BASE_URL = 'http://localhost:5000';
 
@@ -10,6 +10,7 @@ const ItineraryForm = ({ itinerary, setItinerary }) => {
     visit_duration_hours: 4,
   });
 
+  const [submittedData, setSubmittedData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -21,10 +22,11 @@ const ItineraryForm = ({ itinerary, setItinerary }) => {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
+  const fetchItineraryPlan = async (dataPayload, isBackgroundRefresh = false) => {
+    if (!isBackgroundRefresh) {
+      setLoading(true);
+      setError(null);
+    }
 
     try {
       const response = await fetch(`${API_BASE_URL}/itinerary/plan-itinerary`, {
@@ -32,7 +34,7 @@ const ItineraryForm = ({ itinerary, setItinerary }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(dataPayload),
       });
 
       const data = await response.json();
@@ -41,13 +43,65 @@ const ItineraryForm = ({ itinerary, setItinerary }) => {
         throw new Error(data.error || 'Failed to generate itinerary');
       }
 
-      setItinerary(data); // Set the lifted state
+      setItinerary(data);
     } catch (err) {
-      setError(err.message);
+      if (!isBackgroundRefresh) {
+        setError(err.message);
+      }
     } finally {
-      setLoading(false);
+      if (!isBackgroundRefresh) {
+        setLoading(false);
+      }
     }
   };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmittedData(formData);
+    await fetchItineraryPlan(formData, false);
+  };
+
+  // The new handleMarkDone function calling POST /itinerary/next
+  const handleMarkDone = async (e) => {
+    e.preventDefault();
+
+    // Pause the background polling so the UI doesn't reset the user's progress 
+    // to step 1 the next time the interval ticks.
+    setSubmittedData(null); 
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/itinerary/next`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan: itinerary.plan,
+          current_index: itinerary.current_index || 0
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      // Merge the new progress data into the existing itinerary state
+      setItinerary(prev => ({
+        ...prev,
+        ...data
+      }));
+      
+    } catch (err) {
+      console.error("Failed to mark as done:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (!submittedData) return;
+
+    const intervalId = setInterval(() => {
+      fetchItineraryPlan(submittedData, true);
+    }, 10000); 
+
+    return () => clearInterval(intervalId);
+  }, [submittedData]);
 
   return (
     <div style={styles.container}>
@@ -118,28 +172,51 @@ const ItineraryForm = ({ itinerary, setItinerary }) => {
 
       {itinerary && itinerary.plan && (
         <div style={styles.results}>
-          <h3 style={styles.resultsHeader}>
-            Your Itinerary ({itinerary.total_time} mins)
-          </h3>
+          <div style={styles.resultsHeaderContainer}>
+            <h3 style={styles.resultsHeader}>
+              Your Itinerary ({itinerary.remaining_time ?? itinerary.total_time} mins remaining)
+            </h3>
+            {submittedData && (
+              <span style={styles.liveIndicator}>
+                <span style={styles.liveDot}></span> Live Updating
+              </span>
+            )}
+          </div>
+
           <ul style={styles.list}>
-            {itinerary.plan.map((item, index) => (
-              <li
-                key={index}
-                style={{
-                  ...styles.listItem,
-                  backgroundColor: item.type === 'ride' ? '#f0fdf4' : '#fffbeb',
-                  borderColor: item.type === 'ride' ? '#bbf7d0' : '#fef08a',
-                }}
-              >
-                <div style={styles.itemHeader}>
-                  <strong>{item.order}. {item.name}</strong>
-                  <span style={styles.badge(item.type)}>{item.type}</span>
-                </div>
-                <div style={styles.itemDetail}>
-                  Expected Wait: {item.expected_wait.toFixed(1)} mins
-                </div>
-              </li>
-            ))}
+            {itinerary.plan.map((item, index) => {
+              const isCompleted = index < (itinerary.current_index || 0);
+              const isActive = index === (itinerary.current_index || 0);
+
+              return (
+                <li
+                  key={index}
+                  style={{
+                    ...styles.listItem,
+                    backgroundColor: item.type === 'ride' ? '#f0fdf4' : '#fffbeb',
+                    borderColor: item.type === 'ride' ? '#bbf7d0' : '#fef08a',
+                    // Visually mark completed items by fading them and crossing out text
+                    opacity: isCompleted ? 0.5 : 1,
+                    textDecoration: isCompleted ? 'line-through' : 'none'
+                  }}
+                >
+                  <div style={styles.itemHeader}>
+                    <strong>{item.order}. {item.name}</strong>
+                    <span style={styles.badge(item.type)}>{item.type}</span>
+                  </div>
+                  <div style={styles.itemDetail}>
+                    Expected Wait: {item.expected_wait.toFixed(1)} mins
+                  </div>
+                  
+                  {/* Only show the 'Done' button on the immediately active step */}
+                  {isActive && (
+                    <button onClick={handleMarkDone} style={styles.doneButton}>
+                      Done ✅
+                    </button>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
@@ -200,6 +277,19 @@ const styles = {
     fontSize: '1rem',
     flex: '1 1 100%',
   },
+  doneButton: {
+    marginTop: '10px',
+    padding: '8px 16px',
+    backgroundColor: '#16a34a',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    fontSize: '0.9rem',
+    alignSelf: 'flex-start',
+    transition: 'background-color 0.2s',
+  },
   error: {
     color: 'red',
     marginTop: '10px',
@@ -212,9 +302,33 @@ const styles = {
     paddingTop: '20px',
     borderTop: '2px solid #e5e7eb',
   },
+  resultsHeaderContainer: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '15px',
+  },
   resultsHeader: {
-    marginTop: 0,
+    margin: 0,
     color: '#1f2937',
+  },
+  liveIndicator: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    fontSize: '0.85rem',
+    color: '#16a34a',
+    fontWeight: 'bold',
+    backgroundColor: '#dcfce7',
+    padding: '4px 10px',
+    borderRadius: '12px',
+  },
+  liveDot: {
+    width: '8px',
+    height: '8px',
+    backgroundColor: '#16a34a',
+    borderRadius: '50%',
+    animation: 'pulse 1.5s infinite',
   },
   list: {
     listStyleType: 'none',
@@ -230,6 +344,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '5px',
+    transition: 'all 0.3s ease', 
   },
   itemHeader: {
     display: 'flex',
@@ -251,5 +366,15 @@ const styles = {
     color: '#4b5563',
   },
 };
+
+const styleSheet = document.createElement("style");
+styleSheet.innerText = `
+@keyframes pulse {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
+`;
+document.head.appendChild(styleSheet);
 
 export default ItineraryForm;
