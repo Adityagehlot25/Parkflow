@@ -14,9 +14,11 @@ const chatRouter = require('./routes/chat');
 
 const app = express();
 
-// CORS Configuration - Allow frontend from any origin in development, restrict in production
+// CORS Configuration - Allow frontend from specified origin or all origins
+// In production, set CORS_ORIGIN to your Vercel domain (e.g., "https://myapp.vercel.app")
+// Locally or without env var, allows all origins for development
 const corsOptions = {
-    origin: process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' ? '' : '*'),
+    origin: process.env.CORS_ORIGIN || '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,
     optionsSuccessStatus: 200

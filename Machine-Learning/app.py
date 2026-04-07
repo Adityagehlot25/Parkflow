@@ -134,6 +134,8 @@ def predict_wait_time(request: PredictionRequest):
 # 5. Local Execution Block
 # =====================================================================
 if __name__ == "__main__":
+    import os
     import uvicorn
-    # Runs on port 5001 so it doesn't conflict with your Node.js backend
-    uvicorn.run("app:app", host="0.0.0.0", port=5001, reload=True)
+    # Read PORT from environment, default to 5001 for local development
+    port = int(os.getenv("PORT", 5001))
+    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)
