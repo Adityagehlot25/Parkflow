@@ -90,7 +90,7 @@ Water park/
 │   │   ├── amenities.js             # Amenity endpoints
 │   │   └── chat.js                  # AI chat endpoint
 │   ├── services/
-│   │   ├── dataLoader.js            # CSV loading utilities
+│   │   ├── dataloader.js            # CSV loading utilities
 │   │   ├── crowdSimulator.js        # Real-time crowd simulation
 │   │   └── waitTimeService.js       # Wait time predictions
 │   ├── server.js                    # Express app setup

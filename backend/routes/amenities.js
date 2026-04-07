@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { loadCSV } = require('../services/dataLoader');
+const { loadCSV } = require('../services/dataloader');
 
 // GET /amenities
 router.get('/', async (req, res) => {
