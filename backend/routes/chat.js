@@ -19,7 +19,7 @@ async function callLLM(systemPrompt, userMessage, jsonMode = false) {
     }
 
     const payload = {
-        model: "openai/gpt-4o-mini", 
+        model: "qwen/qwen3.6-plus:free", 
         messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userMessage }
